@@ -29,9 +29,12 @@ def gradient_descenting_search_dist(simulated_sample, initial_parameters, given_
 	run_time_counter = 0
 	while abs(cvar - old_cvar) > epsilon:
 		run_time_counter += 1
+		if run_time_counter >= 1e5:
+			# print('current line: ',inspect.currentframe().f_back.f_lineno)
+			break
 		if len(free_index) == 0:
 			# There is no freedom, we have found optimal point
-			print('current line: ',inspect.currentframe().f_back.f_lineno)
+			# print('current line: ',inspect.currentframe().f_back.f_lineno)
 			break
 		initial_LP_coin = Rx0 + 0.5 * x0 * initial_parameters
 		y_coins = simulated_sample[:,:,1] @ (x0 * initial_parameters / initial_LP_coin)
@@ -50,13 +53,15 @@ def gradient_descenting_search_dist(simulated_sample, initial_parameters, given_
 		else:
 			k = 3
 		q_quantile = np.mean([combined_sample[i][0] for i in range(q_index-k+1,q_index+k+1)])
-
+		# if run_time_counter % 2000 == 0:
+		# 	print('Searching near the boundary: ', close_to_constrain)
+		# 	print('q quantile: ', q_quantile)
 		if close_to_constrain:
 			if q_quantile <= zeta + delta[0]:
 				# If the previous step is close to the boundary and the new step is even more closer,  
 				# then we stop our search and return the previous parameters
 				violate_constrain = True
-				print('current line: ',inspect.currentframe().f_back.f_lineno)
+				# print('current line: ',inspect.currentframe().f_back.f_lineno)
 				break
 			elif q_quantile <= zeta + delta[1]:
 				# Then new step is still close to boundary, we need to search in the direction that is  
@@ -74,7 +79,7 @@ def gradient_descenting_search_dist(simulated_sample, initial_parameters, given_
 					grad_cvar -= np.sum(grad_cvar * grad_cons)/np.sum(grad_cons**2) * grad_cons
 				if all(np.abs(grad_cvar) < epsilon):
 					# In this case, two gradient is in the same direction, we should stop
-					print('current line: ',inspect.currentframe().f_back.f_lineno)
+					# print('current line: ',inspect.currentframe().f_back.f_lineno)
 					break
 				# check if all parameters are positive and have a sum smaller than 1 after update
 				# If not, take another stepsize so that the next point will be on the boundary
@@ -91,7 +96,7 @@ def gradient_descenting_search_dist(simulated_sample, initial_parameters, given_
 						no_descenting_counter += 1
 						old_cvar = 100
 						if no_descenting_counter >=2:
-							print('current line: ',inspect.currentframe().f_back.f_lineno)
+							# print('current line: ',inspect.currentframe().f_back.f_lineno)
 							break
 					temp_param = initial_parameters[free_index] - stepsize * grad_cvar * shorten_factor
 					initial_parameters[free_index] = temp_param
@@ -123,15 +128,16 @@ def gradient_descenting_search_dist(simulated_sample, initial_parameters, given_
 				shorten_factor *= 0.5
 				if shorten_factor <= 0.01:
 					# If we ran into this situation several times, it's better to regenerate samples.
-					print('current line: ',inspect.currentframe().f_back.f_lineno)
+					# print('current line: ',inspect.currentframe().f_back.f_lineno)
 					break
-				# old_cvar = 100
+				old_cvar = 100
 				initial_parameters = old_initial_parameters
 				# parameters = old_parameters
 				continue
 			elif q_quantile <= zeta + delta[1]:
 				# In this case, we get closer to the boundary and need to make sure our (1-q) 
 				# quantile does not descent further. Thus we jump to another searching method.
+				old_cvar = 100
 				close_to_constrain = True
 				continue
 			else:
@@ -140,7 +146,7 @@ def gradient_descenting_search_dist(simulated_sample, initial_parameters, given_
 				grad_cvar = (grad_cvar - np.sum(grad_cvar[constrained_index]))[free_index]
 				if all(np.abs(grad_cvar) < epsilon):
 					# In this case, local minimum is achieved, we should stop
-					print('current line: ',inspect.currentframe().f_back.f_lineno)
+					# print('current line: ',inspect.currentframe().f_back.f_lineno)
 					break
 				old_initial_parameters = initial_parameters
 				# old_parameters = parameters
@@ -164,7 +170,7 @@ def gradient_descenting_search_dist(simulated_sample, initial_parameters, given_
 						# free_index haven't been updated
 						no_descenting_counter += 1
 						if no_descenting_counter >=2:
-							print('current line: ',inspect.currentframe().f_back.f_lineno)
+							# print('current line: ',inspect.currentframe().f_back.f_lineno)
 							break
 					temp_param = initial_parameters[free_index] - stepsize * grad_cvar * shorten_factor
 					initial_parameters[free_index] = temp_param
@@ -185,6 +191,9 @@ def gradient_descenting_search_dist(simulated_sample, initial_parameters, given_
 					initial_parameters[free_index] = temp_param
 					initial_parameters[constrained_index] = 1 - np.sum(initial_parameters[free_index])
 					initial_parameters[fixed_index] = 0
+		# if run_time_counter <= 2:
+		# 	print('first search gradient: ',grad_cvar," with respect to index: ",free_index)
+		# 	print("target value: ",(old_cvar,cvar))
 	return (cvar,q_quantile),initial_parameters,violate_constrain,run_time_counter
 """	while abs(cvar - old_cvar > epsilon):
 		approximate_sample = simulated_sample @ initial_parameters
@@ -205,7 +214,7 @@ def gradient_descenting_search_dist(simulated_sample, initial_parameters, given_
 			if (q_quantile < zeta):
 				# the constrain has been violated, we need to go back to previous step and shorten our step
 				boundary_fail = True
-				print('current line: ',inspect.currentframe().f_back.f_lineno)
+				# print('current line: ',inspect.currentframe().f_back.f_lineno)
 				break
 			elif q_quantile > zeta:
 				# machine accuracy might be needed to be taken into consideration
@@ -291,15 +300,23 @@ def generate_simulated_sample(initial_parameters, given_parameter, batch_size):
 	return simulated_sample,(cvar,P_zeta)
 
 if __name__ == "__main__":
-	initial_parameters = np.ones(params['N_pools']) / params['N_pools']
-	initial_parameters = np.array([0.13,0.2,0.12,0.15,0.3,0.1])
+	# initial_parameters = np.ones(params['N_pools']) / params['N_pools']
+	# initial_parameters = np.array([0.5,0.1,0.04,0.04,0.3,0.02])
+	initial_parameters = np.random.rand(params['N_pools'])
+	initial_parameters /= np.sum(initial_parameters)
+
 	old_real_cvar,real_cvar = 100,0
 	counter = 0
 	old_initial_parameters = 0
 	while abs(old_real_cvar - real_cvar) > 1e-7:
 		counter += 1
+		# if counter <= 15:
+		# 	batch_size = 300
+		# else:
+		# 	batch_size = 1000
+		batch_size = params['batch_size']
 		real_cvar, real_P_zeta = 0,0
-		simulated_sample,(real_cvar, real_P_zeta) = generate_simulated_sample(initial_parameters,params,4000)
+		simulated_sample,(real_cvar, real_P_zeta) = generate_simulated_sample(initial_parameters,params,batch_size)
 		print("the CVaR of current weight is: ",real_cvar)
 		print("the probability of larger than zeta is: ",real_P_zeta)
 		if real_P_zeta < params['q']:
@@ -307,12 +324,13 @@ if __name__ == "__main__":
 			break
 		cvar,q_quantile,violate_constrain,run_time_counter =0,0,0,0
 		old_initial_parameters = initial_parameters
-		(cvar,q_quantile),initial_parameters,violate_constrain,run_time_counter = gradient_descenting_search_dist(simulated_sample, initial_parameters, params,learning_rate=0.01,delta=(0.001,0.005))
+		(cvar,q_quantile),initial_parameters,violate_constrain,run_time_counter = gradient_descenting_search_dist(simulated_sample, initial_parameters, params,learning_rate=0.001,delta=(0.001,0.005))
 		print('approximate CVaR and quantile are: ',cvar,", ",q_quantile)
 		print('investment weight: ', initial_parameters)
 		print("searching rounds: ", run_time_counter)
-		if counter >= 10:
+		if counter >= 15:
 			break
-	simulated_sample,(real_cvar, real_P_zeta) = generate_simulated_sample(initial_parameters,params,4000)
+	# np.random.seed(params['seed'])
+	simulated_sample,(real_cvar, real_P_zeta) = generate_simulated_sample(initial_parameters,params,params['batch_size'])
 	print("the CVaR of current weight is: ",real_cvar)
 	print("the probability of larger than zeta is: ",real_P_zeta)
