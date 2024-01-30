@@ -293,7 +293,7 @@ def generate_simulated_sample(initial_parameters, given_parameter, batch_size):
 	# lambd = 1/1.1262
 	approximate_sample = np.log(0.5 * simulated_sample[:,:,0] @ (initial_parameters / initial_LP_coin) + 0.5 * ((simulated_sample[:,:,1] @ (initial_parameters / initial_LP_coin)).T * best_price).T)
 	real_sample = np.log(np.array([end_pools[i].burn_and_swap(l) for i in range(len(end_pools))]) / x_0)
-	print(np.mean(np.abs(approximate_sample - real_sample)))
+	#print(np.mean(np.abs(approximate_sample - real_sample)))
 	qtl = np.quantile(-real_sample, given_parameter['alpha'])
 	cvar = np.mean(-real_sample[-real_sample >= qtl])
 	P_zeta = len(real_sample[real_sample >= given_parameter['zeta']])/len(real_sample)
