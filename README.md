@@ -19,4 +19,5 @@ To run the script, follow these steps:
 
 ```
 cd elagnitram
+python GD.py
 ```
