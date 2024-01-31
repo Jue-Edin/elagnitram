@@ -1,6 +1,6 @@
 # elagnitram
 
-This is the submission to SIAG/FME Code Quest 2023 by our team, "elagnitram".
+This submission is made by our team, "elagnitram", for the SIAG/FME Code Quest 2023. Results are based on tests conducted on MacOS with an M1 chip and may vary on other systems. This submission is for competition purposes only.
 
 ### Gradient Descent Implementation
 
